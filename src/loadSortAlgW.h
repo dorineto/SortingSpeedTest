@@ -7,7 +7,7 @@
 #include <string.h>
 #include <windows.h>
 
-#define PATH_ALG "./algoritmos/"
+#define PATH_ALG "./bin/alg/"
 
 typedef void(__cdecl *sort)(int *, int);
 

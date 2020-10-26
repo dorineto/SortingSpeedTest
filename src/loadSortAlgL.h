@@ -9,7 +9,7 @@
 #include <dlfcn.h>
 
 
-#define PATH_ALG "./algoritmos/"
+#define PATH_ALG "./bin/alg/"
 
 typedef void(*sort)(int *, int);
 

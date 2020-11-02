@@ -4,9 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <ctype.h>
-#include <string.h>
 #include <dirent.h>
-#include <errno.h>
 
 #include "str.h"
 
@@ -17,6 +15,20 @@ void toLowerStr(char *str);
 void toUpperStr(char *str);
 
 int listFiles(const char *dirName, str ***fileNames, int (*select)(struct dirent *));
+
+str **charArrToStrArr(char *arrChar[], int size){
+	if(arrChar == NULL || size <= 0) return NULL;
+	
+	str **strArr = (str **)malloc(sizeof(str) * size);
+	if(strArr == NULL) return NULL;
+	
+	for(int i = 0; i < size; i++){
+		if(!initStr(&strArr[i], strlen(arrChar[i]))) return NULL;
+		strcpy(strArr[i]->value, arrChar[i]);
+	}
+	
+	return strArr;
+}
 
 /* Function implementation */
 

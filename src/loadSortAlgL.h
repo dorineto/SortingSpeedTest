@@ -2,22 +2,19 @@
 #define _LOADSORTALGL_H_
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-#include <dirent.h>
 #include <dlfcn.h>
 
-
-#define PATH_ALG "./bin/alg/"
+#define PATH_ALG "./alg/"
 
 typedef void(*sort)(int *, int);
 
-bool loadSortAlg(void **handle, sort *func_sort, const char* libName);
+bool loadSortAlg(void **handle, sort *func_sort, char* libFile);
 
 void unloadSortAlg(void **handle);
 
-bool loadSortAlg(void **handle, sort *func_sort, const char* libFile){
+bool loadSortAlg(void **handle, sort *func_sort, char* libFile){
 	if(strlen(libFile) == 0 || strstr(libFile, ".so") == NULL) return false;
 	
 	char path[strlen(PATH_ALG)];

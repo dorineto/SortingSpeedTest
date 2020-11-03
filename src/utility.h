@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <dirent.h>
+#include <time.h>
 
 #include "str.h"
 
@@ -16,19 +17,7 @@ void toUpperStr(char *str);
 
 int listFiles(const char *dirName, str ***fileNames, int (*select)(struct dirent *));
 
-str **charArrToStrArr(char *arrChar[], int size){
-	if(arrChar == NULL || size <= 0) return NULL;
-	
-	str **strArr = (str **)malloc(sizeof(str) * size);
-	if(strArr == NULL) return NULL;
-	
-	for(int i = 0; i < size; i++){
-		if(!initStr(&strArr[i], strlen(arrChar[i]))) return NULL;
-		strcpy(strArr[i]->value, arrChar[i]);
-	}
-	
-	return strArr;
-}
+str **timeFormat(struct tm *tmTime);
 
 /* Function implementation */
 
@@ -90,6 +79,32 @@ int listFiles(const char *dirName, str ***fileNames, int (*select)(struct dirent
 	closedir(dir);
 	
 	return size;
+}
+
+str **timeFormat(struct tm *tmTime){
+	if(tmTime == NULL) return NULL;
+	
+	str **timeFormated = (str **)malloc(sizeof(str) * 3);
+	if(timeFormat == NULL) return NULL;
+	
+	errno = 0;
+	for(int i = 0; i < 3; i++){
+		if(!initStr(&timeFormated[i], (int)sizeof(int))){
+			errno = -1;
+			break;
+		}
+	}
+	
+	if(errno == -1){
+		free(timeFormated);
+		return NULL;
+	}
+	
+	sprintf(timeFormated[0]->value, (tmTime->tm_hour - 10 < 0? "0%d" : "%d"), tmTime->tm_hour);
+	sprintf(timeFormated[1]->value, (tmTime->tm_min - 10 < 0? "0%d" : "%d"), tmTime->tm_min);
+	sprintf(timeFormated[2]->value, (tmTime->tm_sec - 10 < 0? "0%d" : "%d"), tmTime->tm_sec);
+	
+	return timeFormated;
 }
 
 #endif

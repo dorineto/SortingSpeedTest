@@ -1,10 +1,10 @@
 #ifndef _UTILITY_H_
 #define _UTILITY_H_
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <ctype.h>
-#include <dirent.h>
 #include <time.h>
 
 #include "str.h"
@@ -15,9 +15,23 @@ void toLowerStr(char *str);
 
 void toUpperStr(char *str);
 
-int listFiles(const char *dirName, str ***fileNames, int (*select)(struct dirent *));
+#ifdef _WIN32
+	#include <windows.h>
+	
+	int listFiles(const char *dirName, char ***fileNames, int (*select)(CHAR [MAX_PATH]));
+#else
+	#include <dirent.h>
+
+	int listFiles(const char *dirName, char ***fileNames, int (*select)(struct dirent *));
+#endif
 
 str **timeFormat(struct tm *tmTime);
+
+int indexOf(const char *searchStr, const char *cmpStr);
+
+char *subString(const char* string, int start, int end);
+
+void setupDirs();
 
 /* Function implementation */
 
@@ -31,16 +45,97 @@ void toUpperStr(char *str){
 		str[i] = (char)toupper(str[i]);
 }
 
-int listFiles(const char *dirName, str ***fileNames, int (*select)(struct dirent *)){
+#ifdef _WIN32
+int listFiles(const char *dirName, char ***fileNames, int (*select)(CHAR [MAX_PATH])){
+	if(strlen(dirName) == 0) return -1;
+	
+	WIN32_FIND_DATA fd;
+	HANDLE hFiles = INVALID_HANDLE_VALUE;
+	
+	*fileNames = NULL;
+	
+	int fileNameTotal = 5;
+	int size = 0;
+	char **fileN = (char **)malloc(sizeof(char *) * fileNameTotal);
+	if(fileN == NULL)
+		return -1;
+	
+	for(int i = 0; i < fileNameTotal; i++){
+		fileN[i] = (char *)malloc(sizeof(char) * 50);
+		if(fileN[i] == NULL) return -1;
+	}
+	
+	char path[strlen(dirName)];
+	strcpy(path, dirName);
+	strcat(path, "*");
+	
+	hFiles = FindFirstFile(TEXT(path), &fd);
+	if(hFiles == INVALID_HANDLE_VALUE){
+		free(fileN);
+		return -1;
+	}
+	
+	do{
+		if(select != NULL && !(select)(fd.cFileName))
+			continue;
+		
+		size++;
+		if(size > fileNameTotal){
+			fileNameTotal += 5;
+			fileN = (char **)realloc(fileN, sizeof(char *) * fileNameTotal);
+			if(fileN == NULL) return -1;
+			
+			for(int i = size - 1; i < fileNameTotal; i++){
+				fileN[i] = (char *)malloc(sizeof(char) * 50);
+				if(fileN[i] == NULL) return -1;
+			}
+		}
+		
+		strcpy(fileN[size - 1], fd.cFileName);
+	}while(FindNextFile(hFiles, &fd));
+	
+	if(GetLastError() != ERROR_NO_MORE_FILES){
+		free(fileN);
+		return -1;
+	}
+	
+	if(size == 0){
+		free(fileN);
+	}else{
+		fileN = (char **)realloc(fileN, sizeof(char *) * size);
+		if(fileN == NULL) return -1;
+	}
+	
+	FindClose(hFiles);
+	
+	*fileNames = fileN;
+	
+	return size;
+}
+#else
+int listFiles(const char *dirName, char ***fileNames, int (*select)(struct dirent *)){
 	if(strlen(dirName) == 0) return -1;
 	
 	DIR *dir = opendir(dirName);
 	if(dir == NULL)
 		return -1;
 	
-	*fileNames = (str **)malloc(sizeof(str) * 5);
+	*fileNames = NULL;
+	
 	int fileNameTotal = 5;
 	int size = 0;
+	
+	char **fileN = (char **)malloc(sizeof(char *) * fileNameTotal);
+	if(fileN == NULL)
+		return -1;
+	
+	for(int i = 0; i < fileNameTotal; i++){
+		fileN[i] = (char *)malloc(sizeof(char *) * 50);
+		if(fileN[i] == NULL){
+			free(fileN);
+			return -1;
+		}
+	}
 	
 	struct dirent *arq;
 	do{
@@ -53,33 +148,42 @@ int listFiles(const char *dirName, str ***fileNames, int (*select)(struct dirent
 			
 			if(size > fileNameTotal ){
 				fileNameTotal += 5;
-				realloc(*fileNames, sizeof(str) * fileNameTotal);
-				
-				if(*fileNames == NULL) return -1;
-			}
+				fileN = (char **)realloc(fileN, sizeof(char *) * fileNameTotal);
+				if(fileN == NULL) return -1;
+
+				for(int i = size - 1; i < fileNameTotal; i++){
+					fileN[i] = (char *)malloc(sizeof(char) * 50);
+					if(fileN[i] == NULL){
+						free(fileN);
+						return -1;
+					}
+				}
+			}			
 			
-			initStr(&((*fileNames)[size - 1]), strlen(arq->d_name));
-			strcpy((*fileNames)[size - 1]->value, arq->d_name);
+			strcpy(fileN[size - 1], arq->d_name);
 		}
 	}while(arq != NULL);
 	
 	if(arq == NULL && errno != 0){
-		free(*fileNames);
+		free(fileN);
 		return -1;
 	}
 	
 	if(size == 0)
-		free(*fileNames);
+		free(fileN);
 	else{
-		realloc(*fileNames, sizeof(str) * size);
-		if(*fileNames == NULL)
+		fileN = (char **)realloc(fileN, sizeof(char *) * size);
+		if(fileN == NULL)
 			return -1;
 	}
 	
 	closedir(dir);
 	
+	*fileNames = fileN;
+	
 	return size;
-}
+}	
+#endif
 
 str **timeFormat(struct tm *tmTime){
 	if(tmTime == NULL) return NULL;
@@ -89,7 +193,7 @@ str **timeFormat(struct tm *tmTime){
 	
 	errno = 0;
 	for(int i = 0; i < 3; i++){
-		if(!initStr(&timeFormated[i], (int)sizeof(int))){
+		if(!initStr(&timeFormated[i], ((int)sizeof(int)) + 1)){
 			errno = -1;
 			break;
 		}
@@ -105,6 +209,67 @@ str **timeFormat(struct tm *tmTime){
 	sprintf(timeFormated[2]->value, (tmTime->tm_sec - 10 < 0? "0%d" : "%d"), tmTime->tm_sec);
 	
 	return timeFormated;
+}
+
+char *subString(const char* string, int start, int end){
+	if(string == NULL || start < 0 || start > strlen(string)
+	|| end <= start || end > strlen(string)) return "";
+
+	char *Str = (char *)malloc(sizeof(char) * strlen(string));
+	strcpy(Str, string);
+
+	char *subStr = (char *)malloc(sizeof(char) * (end - start) + 1);
+	for(int i = start, k = 0; i < end; i++, k++)
+		subStr[k] = Str[i];
+	
+	subStr[end - start] = '\0';
+	
+	return subStr;
+}
+
+int indexOf(const char *searchStr, const char *cmpStr){
+	if(searchStr == NULL || strlen(searchStr) == 0 
+	|| cmpStr == NULL || strlen(cmpStr) == 0 ) return -1;
+	
+	char * scStr = (char *)malloc(sizeof(char) * strlen(searchStr));
+	strcpy(scStr, searchStr);
+	
+	char * cpStr = (char *)malloc(sizeof(char) * strlen(cmpStr));
+	strcpy(cpStr, cmpStr);
+	
+	int index = -1;
+	bool matched;
+	
+	for(int i = 0; i < strlen(scStr); i++){
+		if(i + strlen(cpStr) - 1 > strlen(scStr) - 1)
+			break;
+		
+		matched = true;
+		for(int j = 0; j < strlen(cpStr); j++){
+			if(scStr[i + j] != cpStr[j]){
+				matched = false;
+				break;
+			}
+		}
+		
+		if(matched){
+			index = i;
+			break;
+		}
+	}
+	
+	return index;
+}
+
+
+void setupDirs(){
+	#ifdef _WIN32
+		_mkdir("./alg/");
+		_mkdir("./cargas");
+	#else
+		mkdir("./alg/", S_IRWXU | S_IRWXG | S_IRWXO);
+		mkdir("./cargas/", S_IRWXU | S_IRWXG | S_IRWXO);
+	#endif
 }
 
 #endif

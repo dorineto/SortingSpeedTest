@@ -4,15 +4,19 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+
 #include "utility.h"
+#include "list.h"
 
 /* Function definition */
 
 int menuGen(char *options[], int size);
 
-int menuGenStr(str **options, int size);
+int menuGenList(list *options);
 
 bool menuConfirm(char *action);
+
+void printAlignCenter(char *text, int width);
 
 /* Function implemention*/
 
@@ -35,12 +39,12 @@ int menuGen(char *options[], int size){
 	return ret - 1;
 }
 
-int menuGenStr(str **options, int size){ 
-	if(size <= 0 || options == NULL) return -1;
+int menuGenList(list *options){ 
+	if(options == NULL || isEmpty(options)) return -1;
 	
 	printf("\n");
-	for(int i = 0; i < size; i++){
-		printf("%d - %s\n", (i + 1), options[i]->value);
+	for(int i = 0; i <= options->currentIndex; i++){
+		printf("%d - %s\n", (i + 1), options->values[i]->value);
 	}
 	
 	int ret;
@@ -48,7 +52,7 @@ int menuGenStr(str **options, int size){
 	printf("\nEscolha uma das opcoes acima: ");
 	scanf("%d", &ret);
 	
-	if(ret <= 0 || ret > size)
+	if(ret <= 0 || ret > options->currentIndex + 1)
 		return -1;
 	
 	return ret - 1;
@@ -62,5 +66,18 @@ bool menuConfirm(char *action){
 	
 	toLowerStr(esc);
 	return strncmp("sim", esc, strlen(esc)) == 0;
+}
+
+void printAlignCenter(char *text, int width){
+	int left = (width - strlen(text));
+	if(left < 0){
+		printf("%s", text);
+		return;
+	}
+	
+	left /= 2;
+	int right = (width - strlen(text)) - left;
+	
+	printf("%*s%s%*s", left, "", text, right, "");
 }
 #endif

@@ -2,6 +2,7 @@
 #define _STR_H_
 
 #include <stdlib.h>
+#include <stdio.h>
 
 /* Structs */
 
@@ -18,10 +19,10 @@ int initStr(str **str, int size);
 
 int initStr(str **strI, int size){
     if(size <= 0) return 0;
-    
+	
     *strI = (str *)malloc(sizeof(str));
-    if((*strI) == NULL) return 0;
-    
+	if(*strI == NULL) return 0;
+	
     (*strI)->value = (char *)malloc(sizeof(char) * size);
     if((*strI)->value == NULL) return 0;
 

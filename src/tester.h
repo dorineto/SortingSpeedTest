@@ -5,7 +5,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
-#include <math.h>
 
 #ifdef __WIN32
 	#include "loadSortAlgW.h"

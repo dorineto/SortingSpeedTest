@@ -32,14 +32,17 @@ char *createLoad(int size, char *fileName, const char complexity){
 	|| (complexity != 'b' && complexity != 'r' && complexity != 'w'))
 		return "Parametro invalido!";
 	
-	char path[strlen(PATH_CARGAS)];
-	strcpy(path, PATH_CARGAS);
+	char *path = (char *)malloc(sizeof(char) * (strlen(fileName) + 10));
+	strcpy(path, "./cargas/");
 	strcat(path, fileName);
 	
+	errno = 0;
 	FILE *file = fopen(path, "wb+");
 	if(file == NULL)
 		return "Nao foi possivel abrir o arquivo";
 	
+	free(path);
+
 	errno = 0;
 	
 	int writeNumber;
@@ -66,29 +69,39 @@ char *createLoad(int size, char *fileName, const char complexity){
 int readLoad(char *fileName, int **arr){
 	if(fileName == NULL || strlen(fileName) == 0 || strstr(fileName, ".cg") == NULL) return -1;
 	
-	char path[strlen(PATH_CARGAS)];
-	strcpy(path, PATH_CARGAS);
+	char *path = (char *)malloc(sizeof(char) * (strlen(fileName) + 10));
+	strcpy(path, "./cargas/");
 	strcat(path, fileName);
-	
+
 	int size = quantElements(sizeof(int), path);
-	if(size <= 0) return size;
+	if(size <= 0){
+		free(path);
+		return size;
+	}
 	
 	*arr = (int *)malloc(sizeof(int) * size);
-	if(*arr == NULL) return -1;
+	if(*arr == NULL){
+		free(path);
+		return -1;
+	}
 	
 	int *readNum = (int *)malloc(sizeof(int));
 	if(readNum == NULL){
+		free(path);
 		free(*arr);
 		return -1;
 	}
 	
 	FILE *file = fopen(path, "rb");
 	if(file == NULL){
+		free(path);
 		free(*arr);
 		free(readNum);
 		return -1;
 	}
 	
+	free(path);
+
 	rewind(file);
 	errno = 0;
 	
@@ -129,21 +142,21 @@ char *genLoadFileName(int size, const char complexity){
 	time_t nowTime = time(NULL);
 	struct tm *tmNow = localtime(&nowTime);
 	
-	char *fileName = (char *)malloc(sizeof(char) * 90);
-	if(fileName == NULL) return NULL;
+	char fileNamePattern[100];
+	if(fileNamePattern == NULL) return NULL;
 	
-	str **timeFormated = timeFormat(tmNow);
-	if(timeFormated == NULL){
-		free(fileName);
-		return NULL;
-	}
+	char **timeFormated = timeFormat(tmNow);
+	if(timeFormated == NULL) return NULL;
 	
-	sprintf(fileName, "%d%d%d%s%s%s_S%d_%c.cg", 
+	sprintf(fileNamePattern, "%d%d%d%s%s%s_S%d_%c.cg", 
 			tmNow->tm_mday, (tmNow->tm_mon + 1), (1900 + tmNow->tm_year),
-			timeFormated[0]->value, timeFormated[1]->value, timeFormated[2]->value,
+			timeFormated[0], timeFormated[1], timeFormated[2],
 			size, toupper((int)complexity));
 	
-	realloc(fileName, (sizeof(char) * strlen(fileName)));
+	char *fileName = (char *)malloc(sizeof(char) * strlen(fileNamePattern));
+	fileName = strcpy(fileName, fileNamePattern);
+	
+	//free(tmNow);
 	
 	return fileName;
 }

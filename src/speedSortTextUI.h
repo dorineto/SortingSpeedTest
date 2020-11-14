@@ -32,6 +32,8 @@ configTest *configTestUI();
 
 void createResultTable(configTest *ct, double **results);
 
+bool createLoadUI(int *size, char *complexity);
+
 /* Function implementation */
 
 #ifdef _WIN32
@@ -108,7 +110,7 @@ configTest *configTestUI(){
 			}
 		}while((!isEmpty(optionsList)) && menuConfirm("adicionar mais um arquivo para o teste"));
 		
-		if(isEmpty(cgTest->arqLoad) || isEmpty(cgTest->algSort)){
+		if((i == 0 && isEmpty(cgTest->arqLoad)) ||(i == 1 && isEmpty(cgTest->algSort))){
 			free(auxArr);
 			free(optionsList);
 			return NULL;
@@ -135,17 +137,16 @@ void createResultTable(configTest *ct, double **results){
 	if(ct == NULL) return;
 	
 	char *arqName, *algName;
-	char **algArqNames = (char **)malloc(sizeof(char *) * 
-										(ct->algSort->currentIndex + 1) * 
-										(ct->arqLoad->currentIndex + 1));
+	char **algArqNames = (char **)malloc(sizeof(char *) * (ct->algSort->currentIndex + 1) * (ct->arqLoad->currentIndex + 1));
 	
 	int sizeFormat = 0;
-	for(int i = 0; i <= ct->algSort->currentIndex; i++){
-		for(int j = 0; j <= ct->arqLoad->currentIndex; j++){
-			arqName = ct->arqLoad->values[j]->value;
+	for(int i = 0; i <= ct->arqLoad->currentIndex; i++){
+		for(int j = 0; j <= ct->algSort->currentIndex; j++){
+			arqName = ct->arqLoad->values[i]->value;
+			
 			arqName = subString(arqName, indexOf(arqName, "_")+1, indexOf(arqName, ".cg"));
 			
-			algName = ct->algSort->values[i]->value;
+			algName = ct->algSort->values[j]->value;
 			
 			int auxIndex = indexOf(algName, ".dll");
 			auxIndex = auxIndex == -1? indexOf(algName, ".so") : auxIndex;
@@ -156,9 +157,9 @@ void createResultTable(configTest *ct, double **results){
 			if(sizeFormat < size)
 				sizeFormat = size;
 			
-			int index = i * (ct->arqLoad->currentIndex + 1) + j;
+			int index = i * (ct->algSort->currentIndex + 1) + j;
 			algArqNames[index] = (char *)malloc(sizeof(char) * size);
-			sprintf(algArqNames[index], "%s(%s)", arqName, algName);
+			sprintf(algArqNames[index], "%s(%s)", algName, arqName);
 		}
 	}
 	
@@ -174,30 +175,72 @@ void createResultTable(configTest *ct, double **results){
 	printf("|");
 	printAlignCenter("Media", 8);
 	
-	time_t tim;
+	char *** timeFormated = (char ***)malloc(sizeof(char **));
+	char strtime[9];
 	for(int i = 0; i < (ct->algSort->currentIndex + 1) * (ct->arqLoad->currentIndex + 1); i++){
 		printf("\n%-*s ", sizeFormat, algArqNames[i]);
 		
 		for(int j = 0; j <= ct->quantTent; j++){
-			tim = (time_t)results[i][j];
-			str ** timeFormated = timeFormat(gmtime(&tim));
-			
+			*timeFormated = timeFormatWSec((time_t)results[i][j]);
 			
 			printf("|");
-			char strtime[9] = "\0";
-			if(strcmp(timeFormated[0]->value, "00") != 0)
-				sprintf(strtime, "%s:", timeFormated[0]->value);
+			strcpy(strtime, "\0");
 			
-			if(strcmp(timeFormated[1]->value, "00") != 0)
-				sprintf(strtime, "%s%s:", strtime, timeFormated[1]->value);
+			if(strcmp((*timeFormated)[0], "00") != 0){
+				strcat(strtime, (*timeFormated)[0]);
+				strcat(strtime, ":");
+			}
 			
-			sprintf(strtime, "%s%s", strtime, timeFormated[2]->value);
+			if(strcmp((*timeFormated)[1], "00") != 0){
+				strcat(strtime, (*timeFormated)[1]);
+				strcat(strtime, ":");
+			}
+			
+			strcat(strtime, (*timeFormated)[2]);
 			
 			printAlignCenter(strtime, 8);
+			
+			free(*timeFormated);
 		}
 	}
 	
 	free(algArqNames);
+	free(arqName);
+	free(algName);
+}
+
+bool createLoadUI(int *size, char *complexity){
+	char *options[] = {"Melhor caso (ordem crescente)", "Caso Regular (ordem aleatoria)", "Pior caso (ordem decrescente)", "Voltar"};
+	
+	int esc = menuGen(options, 4);
+	while(esc == -1){
+		printf("\nOpcao invalida!\n");
+		
+		esc = menuGen(options, 4);
+	}
+	
+	if(esc == 3)
+		return false;
+	
+	switch(esc){
+		case 0:  *complexity = 'b'; break;
+		case 1:  *complexity = 'r'; break;
+		default: *complexity = 'w';
+	}
+	
+	int s;
+	do{
+		printf("\nInsira a quantidade de numeros gerados: ");
+		scanf("%d", &s);
+		
+		if(s <= 0)
+			printf("\nNumero invalido! O valor é igual o menor a zero.\n");
+	}while(s <= 0);
+	
+	*size = s;
+	
+	printf("\n\nTamanho: %d\nComplexidade: %s\n", s, options[esc]);
+	return menuConfirm("criar o arquivo com as configuracoes acima");
 }
 
 #endif

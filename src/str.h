@@ -19,9 +19,13 @@ int initStr(str **str, int size);
 
 int initStr(str **strI, int size){
     if(size <= 0) return 0;
+
+	size_t s = sizeof(str);
 	
-    *strI = (str *)malloc(sizeof(str));
-	if(*strI == NULL) return 0;
+    str *aux = (str *)malloc(s);
+	if(aux == NULL) return 0;
+    
+	*strI = aux;
 	
     (*strI)->value = (char *)malloc(sizeof(char) * size);
     if((*strI)->value == NULL) return 0;

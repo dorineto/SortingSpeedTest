@@ -6,8 +6,6 @@
 #include <string.h>
 #include <dlfcn.h>
 
-#define PATH_ALG "./alg/"
-
 typedef void(*sort)(int *, int);
 
 bool loadSortAlg(void **handle, sort *func_sort, char* libFile);
@@ -17,13 +15,15 @@ void unloadSortAlg(void **handle);
 bool loadSortAlg(void **handle, sort *func_sort, char* libFile){
 	if(strlen(libFile) == 0 || strstr(libFile, ".so") == NULL) return false;
 	
-	char path[strlen(PATH_ALG)];
-	strcpy(path, PATH_ALG);
-	strcat(path, libFile);
+	char *path = (char *)malloc(sizeof(char) * (strlen(libFile) + 7));
+	strcpy(path, "./alg/");
+	strcat(path, libFile);	
 	
 	*handle = dlopen(path, RTLD_LAZY);
 	if(*handle == NULL) return false;
 	
+	free(path);
+
 	dlerror();
 	*func_sort = (sort)dlsym(*handle, "sort");
 	
